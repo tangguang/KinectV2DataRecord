@@ -1,0 +1,15 @@
+﻿Build started 10/28/2014 9:27:57 PM.
+     1>Project "C:\Users\Guang\Desktop\kinect2_colorbasic - Copy\kinect2_colorbasic\kinect2_colorbasic.vcxproj" on node 2 (Build target(s)).
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"C:\Program Files\opencv\build\include" /I"C:\Program Files\opencv\build\include\opencv" /I"C:\Program Files\opencv\build\include\opencv2" /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt kinect2_colorbasic.cpp
+         kinect2_colorbasic.cpp
+     1>c:\users\guang\desktop\kinect2_colorbasic - copy\kinect2_colorbasic\kinect2_colorbasic.cpp(30): warning C4996: 'localtime': This function or variable may be unsafe. Consider using localtime_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 c:\program files (x86)\microsoft visual studio 12.0\vc\include\time.inl(112) : see declaration of 'localtime'
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\Guang\Desktop\kinect2_colorbasic - Copy\Debug\kinect2_colorbasic.exe" /INCREMENTAL /NOLOGO /LIBPATH:"C:\Program Files\opencv\build\x86\vc12\lib" /LIBPATH:"C:\Program Files\opencv\build\x86\vc12\bin" /LIBPATH:"C:\Program Files\opencv\build\x86\vc12\staticlib" "C:\Program Files\opencv\build\x86\vc12\lib\opencv_world300d.lib" "C:\Program Files\opencv\build\x86\vc12\lib\opencv_ts300d.lib" "C:\Program Files\opencv\build\x86\vc12\lib\..\staticlib\ippicvmt.lib" opencv_calib3d300d.lib opencv_core300d.lib opencv_features2d300d.lib opencv_flann300d.lib opencv_highgui300d.lib opencv_imgproc300d.lib opencv_ml300d.lib opencv_imgcodecs300d.lib opencv_objdetect300d.lib opencv_photo300d.lib opencv_shape300d.lib opencv_stitching300d.lib opencv_superres300d.lib opencv_ts300d.lib opencv_video300d.lib opencv_videoio300d.lib opencv_videostab300d.lib zlibd.lib kinect20.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\Guang\Desktop\kinect2_colorbasic - Copy\Debug\kinect2_colorbasic.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\Guang\Desktop\kinect2_colorbasic - Copy\Debug\kinect2_colorbasic.lib" /MACHINE:X86 Debug\kinect2_colorbasic.obj
+         kinect2_colorbasic.vcxproj -> C:\Users\Guang\Desktop\kinect2_colorbasic - Copy\Debug\kinect2_colorbasic.exe
+     1>Done Building Project "C:\Users\Guang\Desktop\kinect2_colorbasic - Copy\kinect2_colorbasic\kinect2_colorbasic.vcxproj" (Build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:01.59
