@@ -21,15 +21,30 @@ inline void SafeRelease(Interface *& pInterfaceToRelease)
 }
 
 // HRESULT GetFileName(string FileName, string knownPath, int senserID)
-string GetFileName(string knownPath)
+string GetFileName(string knownPath, int sensorID)
 {
 	// HRESULT hr;
 	time_t rawtime;
 	struct tm * timeinfo;
 	time(&rawtime);
 	timeinfo = localtime(&rawtime);
-	string path = knownPath + "roomID100_sensor0_" + to_string(timeinfo->tm_year % 100 + 2000) + "_" + to_string(timeinfo->tm_mon) + "_" + to_string(timeinfo->tm_mday) + "_"
-		+ to_string(timeinfo->tm_hour) + "_" + to_string(timeinfo->tm_min) + "_" + to_string(timeinfo->tm_sec) + ".avi";
+	string path;
+	switch (sensorID)
+	{
+	case 0:
+		path = knownPath + "100_0_" + to_string(timeinfo->tm_year % 100 + 2000) + "_" + to_string(timeinfo->tm_mon + 1) + "_" + to_string(timeinfo->tm_mday) + "_"
+			+ to_string(timeinfo->tm_hour) + "_" + to_string(timeinfo->tm_min) + "_" + to_string(timeinfo->tm_sec) + ".avi";
+		break;
+	case 1:
+		path = knownPath + "100_1_" + to_string(timeinfo->tm_year % 100 + 2000) + "_" + to_string(timeinfo->tm_mon + 1) + "_" + to_string(timeinfo->tm_mday) + "_"
+			+ to_string(timeinfo->tm_hour) + "_" + to_string(timeinfo->tm_min) + "_" + to_string(timeinfo->tm_sec) + ".avi";
+		break;
+	case 2:
+		path = knownPath + "100_2_" + to_string(timeinfo->tm_year % 100 + 2000) + "_" + to_string(timeinfo->tm_mon + 1) + "_" + to_string(timeinfo->tm_mday) + "_"
+			+ to_string(timeinfo->tm_hour) + "_" + to_string(timeinfo->tm_min) + "_" + to_string(timeinfo->tm_sec) + ".csv";
+		break;
+	}
+	
 	//cout << path << endl;
 	return path;
 
@@ -60,9 +75,11 @@ string GetFileName(string knownPath)
 	//return hr;
 }
 
+void ProcessDepth(const UINT16* pBuffer, int nWidth, int nHeight, USHORT nMinDepth, USHORT nMaxDepth, VideoWriter *depth);
+
 int main(int argc, char** argv)
 {
-	string knownPath = ".\\KinectData\\";
+	string knownPath = ".\\";
 
 	// Initialize Kinect Sensor
 	IKinectSensor* pSensor = NULL;
@@ -85,7 +102,8 @@ int main(int argc, char** argv)
 	hResult = pSensor->OpenMultiSourceFrameReader(
 		         FrameSourceTypes::FrameSourceTypes_Depth | 
 				 FrameSourceTypes::FrameSourceTypes_Color | 
-				 FrameSourceTypes::FrameSourceTypes_Infrared,
+				 FrameSourceTypes::FrameSourceTypes_Infrared |
+				 FrameSourceTypes::FrameSourceTypes_Body,
 				 &m_pMultiSourceFrameReader);
 	if (FAILED(hResult))
 	{
@@ -102,44 +120,56 @@ int main(int argc, char** argv)
 	//}
 
 	// File Size Settiing
-	int FramesPerFile = 10;
-	int FileSizeInMS = 900;
+	int FramesPerFile = 900;
 	int m_TimerCount = 0;
 
 	// Initialize RGBStream Setting
 	int width = 1920;   
     int height = 1080;  
-    int bufferSize = width * height * sizeof(RGBQUAD); 
-	Mat *bufferMat = NULL;
-	//VideoWriter video = NULL;
+    int RGBSize = width * height * 4 * sizeof(unsigned char); 
+	Mat RGBMat(height, width, CV_8UC4);
+	VideoWriter *video = NULL;
 
-    Mat colorMat(height / 2, width / 2, CV_8UC4); 
-    namedWindow( "Color" );
+	// Initialize DepthStream Setting
+	int depthwidth = 512;
+	int depthheigh = 424;
+	VideoWriter *depth = NULL;
 	
 	//RGBQUAD *pBuffer = new RGBQUAD[width * height]; /// new RGBQUAD[width * height];
 	
-	int count = 0;
+	//int count = 0;
 	//int codec = VideoWriter::fourcc('M', 'J', 'P', 'G');
-	VideoWriter *video = new VideoWriter(".\\123.avi",
-		9,
-		//VideoWriter::fourcc('D', 'I', 'V', 'X'),
-		10,
-		Size(width, height),
-		true);
+	
 
 	//m_TimerCount %= FileSizeInMS;
-    while(count < 200)
+    while(true)
 	{
-		//GetFileName(knownPath);
-		IColorFrame* pColorFrame = NULL;
+		// Get MultiSource Frame
 		IMultiSourceFrame* pMultiSourceFrame = NULL;
+		
+		// Get Color Frame
+		IColorFrame* pColorFrame = NULL;
 		IColorFrameReference* pColorFrameReference = NULL;
-		RGBQUAD *pBuffer = NULL;
+		 
+		// Get Depth Frame
+		IDepthFrame* pDepthFrame = NULL;
+		IDepthFrameReference* pDepthFrameReference = NULL;
+		USHORT nDepthMinReliableDistance = 0;
+		USHORT nDepthMaxDistance = 0;
+		UINT nBufferSize = 0;
+		UINT16 *pDepthBuffer = NULL;
+		
+		// Get Body Frame
+		IBodyFrame* pBodyFrame = NULL;
+		IBodyFrameReference* pBodyFrameReference = NULL;
+
+		// Multi Source
 		hResult = m_pMultiSourceFrameReader->AcquireLatestFrame(&pMultiSourceFrame);
 		if (FAILED(hResult))
 		{
 			continue;
 		}
+		// RGB
 		hResult = pMultiSourceFrame->get_ColorFrameReference(&pColorFrameReference);
 		if (FAILED(hResult))
 		{
@@ -150,48 +180,104 @@ int main(int argc, char** argv)
 		{
 			continue;
 		}
-		
-		if( SUCCEEDED(hResult))
+		// Depth
+		hResult = pMultiSourceFrame->get_DepthFrameReference(&pDepthFrameReference);
+		if (FAILED(hResult))
 		{
-			//if ((m_TimerCount++) % FileSizeInMS == 0)
-			//{
-				//string filename = GetFileName(knownPath);
-				//cout << filename << endl;
-			count++;
-			cout << count << endl;
-				//if (m_TimerCount == 0)
-				//	video->release();
-			//}
+			continue;
+		}
+		hResult = pDepthFrameReference->AcquireFrame(&pDepthFrame);
+		if (FAILED(hResult))
+		{
+			continue;
+		}
+		// Body
+		hResult = pMultiSourceFrame->get_BodyFrameReference(&pBodyFrameReference);
+
+		if( SUCCEEDED(hResult))
+		{		
+			cout << m_TimerCount << endl;
+			if (m_TimerCount == 0)
+			{
+				string filename1 = GetFileName(knownPath, 0);
+				cout << filename1 << endl;
+				video = new VideoWriter(filename1,
+					9,
+					10,
+					Size(width, height),
+					true);
+
+				string filename2 = GetFileName(knownPath, 1);
+				cout << filename2 << endl;
+				depth = new VideoWriter(filename2,
+					10,
+					10,
+					Size(depthwidth, depthheigh),
+					true);
+			}
+			m_TimerCount++;
+			if (m_TimerCount == FramesPerFile - 1)
+			{
+				cout << "release" << endl; 
+				m_TimerCount = 0;
+				video->release();
+				depth->release();
+			}
 			//pBuffer = new RGBQUAD[width * height];
 			// new RGBQUAD[width * height];
-			pBuffer = new RGBQUAD[width * height];
-			BYTE* m_pBuffer = new BYTE[width * height * 4];
-			hResult = pColorFrame->CopyConvertedFrameDataToArray(bufferSize, reinterpret_cast<BYTE*>(pBuffer), ColorImageFormat_Bgra);
-			
-			memcpy_s(m_pBuffer, width * height * 4, reinterpret_cast<BYTE*>(pBuffer), bufferSize);
-			//if (video != NULL)
-			//{		
-			if(SUCCEEDED( hResult ))
-			{	
-				bufferMat = new Mat(height, width, CV_8UC4, m_pBuffer);
-				video->write(*bufferMat);
-				//resize(bufferMat, colorMat, cv::Size(), 0.5, 0.5);	
-				//}
-				imshow("Color", *bufferMat);
+
+			//pBuffer = new RGBQUAD[width * height];
+			//BYTE* m_pBuffer = new BYTE[width * height * 4];
+			hResult = pColorFrame->CopyConvertedFrameDataToArray(RGBSize, reinterpret_cast<BYTE*>(RGBMat.data), ColorImageFormat_Bgra);
+			if (SUCCEEDED(hResult))
+			{
+				video->write(RGBMat);
+				/*imshow("Depth", RGBMat);
 				if (waitKey(30) == VK_ESCAPE)
 				{
 					break;
+				}*/
+			}
+			//UINT16 *buffer = new UINT16(depthheigh * dep);
+			hResult = pDepthFrame->get_DepthMinReliableDistance(&nDepthMinReliableDistance);
+			if (SUCCEEDED(hResult))
+			{
+				if (SUCCEEDED(hResult))
+				{
+					hResult = pDepthFrame->AccessUnderlyingBuffer(&nBufferSize, &pDepthBuffer);
 				}
-				if (bufferMat)
+				if (SUCCEEDED(hResult))
+				{
+					ProcessDepth(pDepthBuffer, depthwidth, depthheigh, nDepthMinReliableDistance, USHRT_MAX, depth);
+				}
+			}
+			//if (video != NULL)
+			//{		
+			//bufferMat = new Mat(height, width, CV_8UC4, m_pBuffer);
+		    //video->write(RGBMat);
+				//resize(bufferMat, colorMat, cv::Size(), 0.5, 0.5);	
+				//}
+		    
+				/*if (bufferMat)
 				{
 					// delete[] m_pBuffer;
 					delete[] pBuffer;
 					delete bufferMat;
-				}
-				//resize( bufferMat, colorMat, cv::Size(), 0.5, 0.5);				
-			}
+				}*/
+				//resize( bufferMat, colorMat, cv::Size(), 0.5, 0.5);	
+			//cout << "wow" << endl;
+			//if (m_TimerCount % FramesPerFile == 0)
+			//{
+				//video->release();
+				//depth->release();
+			//}
 		}
-		SafeRelease( pColorFrame );	
+		SafeRelease(pMultiSourceFrame);
+		SafeRelease(pColorFrameReference);
+		SafeRelease(pDepthFrameReference);
+		SafeRelease(pDepthFrame);
+		SafeRelease(pColorFrame);	
+		//delete pBuffer;
 	}
 	// SafeRelease( pColorSource );
 	// SafeRelease(m_pMultiSourceFrameReader);
@@ -201,8 +287,22 @@ int main(int argc, char** argv)
 		pSensor->Close();
 	}
 	SafeRelease(pSensor);
-	//destroyAllWindows();
-	video->release();
 	return 0;
 }
 
+void ProcessDepth(const UINT16* pBuffer, int nWidth, int nHeight, USHORT nMinDepth, USHORT nMaxDepth, VideoWriter *depthvideo)
+{
+	// End pixel is start + width*height - 1
+	Mat depthMat(nHeight, nWidth, CV_8UC1);
+	int pBufferLength = nWidth * nHeight;
+	int i = 0;
+	while (i < pBufferLength)
+	{
+		USHORT depth = *pBuffer;
+		BYTE intensity = static_cast<BYTE>((depth >= nMinDepth) && (depth <= nMaxDepth) ? (depth % 256) : 0);
+		++pBuffer;
+		depthMat.at<BYTE>(i / nWidth, i % nWidth) = intensity;
+		i++;
+	}
+	depthvideo->write(depthMat);  
+}
